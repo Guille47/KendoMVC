@@ -1,0 +1,177 @@
+﻿
+@{
+    ViewBag.Title = "Index";
+}
+
+<h2>Index</h2>
+
+<style>
+    html {
+        font: 12px sans-serif;
+    }
+</style>
+
+<div id="grid"></div>
+
+<script>
+
+    var sampleData = [];
+
+    var bringData = async () => {
+
+        const data = await fetch('@Url.Content("~/Examen/IndexGetData")');
+        const response = await data.json();
+        return response;
+
+        }
+
+        var saveSampleData = async (dataToInsert) => {
+
+            const data = await fetch('@Url.Content("~/Examen/Agregar/")', {
+                method: "POST",
+                headers: {
+                'Accept': 'application/json',
+                "Content-type": "application/json"
+                },
+                body: JSON.stringify(dataToInsert)
+            });
+            return data;
+
+        }
+
+        var saveSampleData = async (dataToInsert) => {
+
+            const data = await fetch('@Url.Content("~/Examen/Agregar/")', {
+                method: "POST",
+                headers: {
+                'Accept': 'application/json',
+                "Content-type": "application/json"
+                },
+                body: JSON.stringify(dataToInsert)
+            });
+            return data;
+
+        }
+
+        var updateSampleData = async (dataToUpdate) => {
+
+                const data = await fetch('@Url.Content("~/Examen/Editar/")', {
+                    method: "POST",
+                    headers: {
+                    'Accept': 'application/json',
+                    "Content-type": "application/json"
+                    },
+                    body: JSON.stringify(dataToUpdate)
+                });
+                return data;
+
+        }
+
+        var deleteSampleData = async (Id) => {
+
+                const data = await fetch('@Url.Content("~/Examen/Eliminar/")' + Id, {
+                    method: "POST",
+                    headers: {
+                    'Accept': 'application/json',
+                    "Content-type": "application/json"
+                    }
+                });
+                return data;
+
+        }
+
+        // Custom logic start.
+        var sampleDataNextID = sampleData.length + 1;
+
+        function getIndexById(id) {
+            var idx,
+                l = sampleData.length;
+
+            for (var j=0; j < l; j++) {
+                if (sampleData[j].IdArea == id) {
+                    return j;
+                }
+            }
+            return null;
+        }
+
+        // Custom logic end.
+        $(document).ready(function () {
+            var dataSource = new kendo.data.DataSource({
+                transport: {
+                    read: async function (e) {
+                        // On success.
+                        const data = await bringData();
+                        sampleData = data;
+                        e.success(sampleData);
+                        // On failure.
+                        //e.error("XHR response", "status code", "error message");
+                    },
+                    create: async function (e) {
+                        const response = await saveSampleData(e.data);
+                        // Assign an ID to the new item.
+                        e.data.IdArea = response;
+                        // Save data item to the original datasource.
+                        sampleData.push(e.data);
+                        // On success.
+                        e.success(e.data);
+                        // On failure.
+                        //e.error("XHR response", "status code", "error message");
+                    },
+                    update: async function (e) {
+                        const response = await updateSampleData(e.data);
+                        if (response !== -1) {
+                            // Locate item in original datasource and update it.
+                            sampleData[getIndexById(e.data.IdArea)] = e.data;
+                            // On success.
+                            e.success();
+                        } else {
+                            // On failure.
+                            e.error("XHR response", "status code", "No se pudo actualizar el dato");
+                        }
+                    },
+                    destroy: async function (e) {
+                        const response = await deleteSampleData(e.data.IdArea);
+                        if (response !== -1) {
+                            // Locate item in original datasource and remove it.
+                            sampleData.splice(getIndexById(e.data.IdArea), 1);
+                            // On success.
+                            e.success();
+                        } else {
+                            // On failure.
+                            e.error("XHR response", "status code", "No se pudo actualizar el dato");
+                        }
+                    }
+                },
+                error: function (e) {
+                    // Handle data operation error.
+                    alert("Status: " + e.status + "; Error message: " + e.errorThrown);
+                },
+                pageSize: 10,
+                batch: false,
+                schema: {
+                    model: {
+                        id: "IdArea",
+                        fields: {
+                            IdArea: { editable: false, nullable: true },
+                            Nombre: { validation: { required: true } },
+                            Descripcion: { type: "string" },
+
+                        }
+                    }
+                }
+            });
+
+            $("#grid").kendoGrid({
+                dataSource: dataSource,
+                pageable: true,
+                toolbar: ["create"],
+                columns: [
+                    { field: "Nombre", title: "Nombre" },
+                    { field: "Descripcion", title: "Descripcion" },
+                    { command: ["edit", "destroy"], title: "&nbsp;", width: "200px" }
+                ],
+                editable: "inline"
+            });
+        });
+</script>
